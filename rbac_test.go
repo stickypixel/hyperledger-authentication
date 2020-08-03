@@ -13,47 +13,56 @@ import (
 
 var contractPayload = []byte("invoked")
 
-func mockContract(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+func mockContract(stub shim.ChaincodeStubInterface, args []string, userID string, userRoles []string) ([]byte, error) {
 	return contractPayload, nil
 }
 
 func TestValidateContractPerms(t *testing.T) {
 	tests := []struct {
 		cRef  contractRef
-		roles []string
+		roles string
 		allow bool
 		msg   string
 	}{
 		{
 			cRef:  createTransfer,
-			roles: []string{"user"},
+			roles: "user",
 			allow: false,
 			msg:   "Should not allow invocation",
 		},
 		{
 			cRef:  createWallet,
-			roles: []string{"user"},
+			roles: "user",
 			allow: true,
 			msg:   "Should allow invocation",
 		},
 		{
 			cRef:  createTransfer,
-			roles: []string{"admin"},
+			roles: "admin",
 			allow: true,
 			msg:   "Should allow invocation",
 		},
 		{
 			cRef:  createWallet,
-			roles: []string{"admin"},
+			roles: "admin",
 			allow: false,
 			msg:   "Should not allow invocation",
 		},
 	}
-	appAuth, err := simpleSetup()
-	assert.NoError(t, err)
+
 	for _, tt := range tests {
+		stub := initEmptyStub()
+		cid := new(mockCID)
+		cid.On("GetID", mock.Anything).Return(mock.Anything)
+		cid.On("GetAttributeValue", mock.Anything).Return(tt.roles, true, nil)
+
+		appAuth, err := rbac.New(stub, cid, rolePerms, mock.Anything)
+		if err != nil {
+			t.Fatalf("New appAuth failed unexpectedly")
+		}
+
 		t.Logf("%v, with roles '%v' and contract '%v'", tt.msg, tt.roles, tt.cRef)
-		err := appAuth.ValidateContractPerms(tt.roles, tt.cRef)
+		err = appAuth.ValidateContractPerms(tt.cRef)
 		if !tt.allow {
 			assert.Error(t, err)
 		} else {
@@ -64,7 +73,7 @@ func TestValidateContractPerms(t *testing.T) {
 
 func TestWithContractAuthErrors(t *testing.T) {
 	var expSTType errors.StackTrace
-	args := []string{"any"}
+	args := []string{mock.Anything}
 
 	tests := []struct {
 		cRef      contractRef
@@ -80,7 +89,7 @@ func TestWithContractAuthErrors(t *testing.T) {
 		{
 			cRef:      createTransfer,
 			c:         mockContract,
-			rolesAttr: "anything",
+			rolesAttr: mock.Anything,
 			expSC:     401,
 			expC:      4011,
 			msg:       "unauthenticated, when an error is returned from the CID",
@@ -117,15 +126,21 @@ func TestWithContractAuthErrors(t *testing.T) {
 		stub := initEmptyStub()
 		cid := new(mockCID)
 		cid.On("GetAttributeValue", mock.Anything).Return(tt.cidRole, tt.cidFound, tt.cidErr)
+		cid.On("GetID", mock.Anything).Return(mock.Anything)
 
 		appAuth, err := rbac.New(stub, cid, rolePerms, tt.rolesAttr)
-		assert.NoError(t, err)
 
-		_, err = appAuth.WithContractAuth(args, tt.c, tt.cRef)
+		// If the New constructor didn't fail
+		if err == nil {
+			_, err = appAuth.WithContractAuth(tt.cRef, args, tt.c)
+		}
+
 		assert.Implements(t, (*error)(nil), err)
 		assert.Implements(t, (*rbac.AuthErrorInterface)(nil), err)
 		assert.IsType(t, (string)(""), err.Error())
+
 		if assert.Error(t, err) {
+
 			if e, ok := err.(rbac.AuthErrorInterface); ok {
 				assert.Equal(t, tt.expC, e.Code())
 				assert.Equal(t, tt.expSC, e.StatusCode())
@@ -136,7 +151,7 @@ func TestWithContractAuthErrors(t *testing.T) {
 }
 
 func TestWithContractAuth(t *testing.T) {
-	args := []string{"any"}
+	args := []string{mock.Anything}
 
 	tests := []struct {
 		cRef      contractRef
@@ -168,12 +183,15 @@ func TestWithContractAuth(t *testing.T) {
 		t.Logf("Should successfully return the payload to a user with the role %v, from the contract with ref %v", tt.cidRole, tt.cRef)
 		stub := initEmptyStub()
 		cid := new(mockCID)
-		cid.On("GetAttributeValue", mock.Anything).Return(tt.cidRole, tt.cidFound, tt.cidErr)
+		cid.On("GetAttributeValue", "roles").Return(tt.cidRole, tt.cidFound, tt.cidErr)
+		cid.On("GetID", mock.Anything).Return(mock.Anything)
 
 		appAuth, err := rbac.New(stub, cid, rolePerms, tt.rolesAttr)
-		assert.NoError(t, err)
+		if err != nil {
+			t.Fatalf("New appAuth failed unexpectedly")
+		}
 
-		payload, err := appAuth.WithContractAuth(args, tt.c, tt.cRef)
+		payload, err := appAuth.WithContractAuth(tt.cRef, args, tt.c)
 		assert.NoError(t, err)
 		assert.Equal(t, contractPayload, payload)
 	}

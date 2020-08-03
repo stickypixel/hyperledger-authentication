@@ -81,13 +81,12 @@ type mockCID struct {
 	mock.Mock
 }
 
-func (mc *mockCID) GetAttributeValue(attrName string) (value string, found bool, err error) {
-	args := mc.Called(attrName)
-	return args.String(0), args.Bool(1), args.Error(2)
+func (mc *mockCID) GetID() (string, error) {
+	args := mc.Called()
+	return args.String(0), nil
 }
 
-func simpleSetup() (rbac.AuthServiceInterface, error) {
-	stub := initEmptyStub()
-	cid := new(mockCID)
-	return rbac.New(stub, cid, rolePerms, "roles")
+func (mc *mockCID) GetAttributeValue(attrName string) (string, bool, error) {
+	args := mc.Called(attrName)
+	return args.String(0), args.Bool(1), args.Error(2)
 }
