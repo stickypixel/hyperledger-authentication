@@ -1,0 +1,77 @@
+# Compiled source #
+###################
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+
+# Packages #
+############
+# it's better to unpack these files and commit the raw source
+# git has its own built in compression methods
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# Logs and databases #
+######################
+*.log
+*.sql
+*.sqlite
+
+
+# OS generated files #
+######################
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Cache files #
+###############
+.sass-cache
+
+# Dependencies #
+################
+node_modules/
+/.pnp
+.pnp.js
+vendor/
+*_generated.go
+
+# Testing #
+###########
+coverage/
+*.out
+
+# Sensitive #
+#############
+*.pem
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Terraform #
+#############
+terraform.tfstate.backup
+.terraform/
+
+# Build Files #
+##########
+build/
+dist/
+
+# Others #
+##########
+.webpack
+/vars/
