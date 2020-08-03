@@ -14,7 +14,7 @@ type Roles []string
 type ContractRef interface{}
 
 // Contract describes the function signature of an available chaincode Contract
-type Contract func(shim.ChaincodeStubInterface, []string) ([]byte, error)
+type Contract func(stub shim.ChaincodeStubInterface, args []string, userID string, userRoles []string) ([]byte, error)
 
 // ContractsMap maps function references to actual contract functions. e.g. Query: t.query
 type ContractsMap map[ContractRef]Contract
