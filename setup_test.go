@@ -1,6 +1,8 @@
 package rbac_test
 
 import (
+	"testing"
+
 	"github.com/hyperledger/fabric-chaincode-go/pkg/cid"
 	"github.com/hyperledger/fabric-chaincode-go/shim"
 	"github.com/hyperledger/fabric-chaincode-go/shimtest"
@@ -12,15 +14,20 @@ import (
 
 /*
  *
- * Setup all types for RBAC
+ * Setup all types for RBAC resources, operations and contractRefs
  *
  */
 
-type contractRef string
-
 const (
-	createTransfer contractRef = "createTransfer"
-	createWallet   contractRef = "createWallet"
+	resourceAsset          = "asset"
+	resourceTransfer       = "transfer"
+	resourceWallet         = "wallet"
+	operationGet           = "get"
+	operationQuery         = "query"
+	operationDelete        = "delete"
+	contractCreateTransfer = "createTransfer"
+	contractCreateWallet   = "createWallet"
+	contractQueryLedger    = "queryLedger"
 )
 
 /*
@@ -29,28 +36,50 @@ const (
  *
  */
 
-func getRolePerms() (rp rbac.RolePermissions) {
-	var (
-		userContractPerms = rbac.ContractPermissions{
-			createWallet: true,
-		}
-
-		adminContractPerms = rbac.ContractPermissions{
-			createTransfer: true,
-			createWallet:   false,
-		}
-	)
-
-	rp = rbac.RolePermissions{
+func getRolePerms() rbac.RolePermissions {
+	return rbac.RolePermissions{
 		"admin": {
-			ContractPermissions: adminContractPerms,
+			ContractPermissions: rbac.ContractPermissions{
+				contractCreateTransfer: true,
+				contractCreateWallet:   false,
+				contractQueryLedger:    true,
+			},
+			ResourcePermissions: rbac.ResourcePermissions{
+				resourceAsset: rbac.OperationPermissions{
+					operationGet:    allow,
+					operationQuery:  filterFields,
+					operationDelete: disallow,
+				},
+				resourceTransfer: rbac.OperationPermissions{
+					operationGet:    allow,
+					operationQuery:  allow,
+					operationDelete: allow,
+				},
+				resourceWallet: rbac.OperationPermissions{
+					operationGet:   allow,
+					operationQuery: disallow,
+				},
+			},
 		},
 		"user": {
-			ContractPermissions: userContractPerms,
+			ContractPermissions: rbac.ContractPermissions{
+				contractCreateWallet: true,
+				contractQueryLedger:  true,
+			},
+			ResourcePermissions: rbac.ResourcePermissions{
+				resourceTransfer: rbac.OperationPermissions{
+					operationGet:    disallow,
+					operationQuery:  inTransfer,
+					operationDelete: disallow,
+				},
+				resourceWallet: rbac.OperationPermissions{
+					operationGet:    disallow,
+					operationQuery:  owner,
+					operationDelete: disallow,
+				},
+			},
 		},
 	}
-
-	return rp
 }
 
 /*
@@ -97,4 +126,19 @@ func (mc *mockCID) GetID() (string, error) {
 func (mc *mockCID) GetAttributeValue(attrName string) (string, bool, error) {
 	args := mc.Called(attrName)
 	return args.String(0), args.Bool(1), args.Error(2)
+}
+
+func simpleSetup(t *testing.T, userRoles string) rbac.AuthServiceInterface {
+	stub := initEmptyStub()
+	cid := new(mockCID)
+	cid.On("GetAttributeValue", "roles").Return(userRoles, true, nil)
+	cid.On("GetID").Return("testuserID")
+
+	appAuth, err := rbac.New(stub, cid, getRolePerms(), mock.Anything)
+
+	if err != nil {
+		t.Fatalf("New appAuth failed unexpectedly")
+	}
+
+	return appAuth
 }
