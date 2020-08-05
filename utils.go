@@ -18,3 +18,15 @@ func getRoles(clientIdentity cid.ClientIdentity, rolesAttr string) (Roles, error
 
 	return strings.Split(val, ","), nil
 }
+
+// appendSelector appends selectors to the supplied query to enforce result limiting.
+func appendSelector(s CDBSelector, appS CDBSelector) CDBSelector {
+	s = CDBSelector{
+		"$and": []CDBSelector{
+			s,
+			appS,
+		},
+	}
+
+	return s
+}

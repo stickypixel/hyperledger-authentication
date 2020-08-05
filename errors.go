@@ -50,17 +50,17 @@ func (e authError) StatusCode() int32 {
 	return e.status
 }
 
+// Error Codes for identifying error types.
 const (
 	CodeErrAuthentication = 4011
 	CodeErrRoles          = 4031
 	CodeErrContract       = 4032
+	CodeErrResource       = 4033
 )
-
-var errMsgContract = errors.New("User doesn't have permission to invoke this function")
 
 // errAuthentication for authentication errors (user could not be authenticated).
 func errAuthentication(err error) authError {
-	err = errors.Wrap(err, "User authentication failed")
+	err = errors.Wrap(err, "user authentication failed")
 
 	return authError{
 		err:    err,
@@ -71,7 +71,7 @@ func errAuthentication(err error) authError {
 
 // errRoles error.
 func errRoles(role string) authError {
-	err := errors.Errorf("User roles not found. `%v` does not exist on identity", role)
+	err := errors.Errorf("user roles not found. `%v` attribute does not exist on identity", role)
 
 	return authError{
 		err:    err,
@@ -82,9 +82,22 @@ func errRoles(role string) authError {
 
 // errContract error.
 func errContract() authError {
+	err := errors.New("user doesn't have permission to invoke this function")
+
 	return authError{
-		err:    errMsgContract,
+		err:    err,
 		code:   CodeErrContract,
+		status: http.StatusForbidden,
+	}
+}
+
+// errResource error.
+func errResource() authError {
+	err := errors.New("user doesn't have permission to perform this operation on this record")
+
+	return authError{
+		err:    err,
+		code:   CodeErrResource,
 		status: http.StatusForbidden,
 	}
 }

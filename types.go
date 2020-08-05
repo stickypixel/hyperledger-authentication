@@ -10,11 +10,17 @@ import (
 // Roles is a string array of user roles.
 type Roles []string
 
+// OperationPermissions maps operations to individual rules.
+type OperationPermissions map[string]RuleFunction
+
+// ResourcePermissions maps Resources to OperationPermissions.
+type ResourcePermissions map[string]OperationPermissions
+
 // ContractRef is a reference to a Contract e.g. it's name or enum.
 type ContractRef interface{}
 
-// Contract describes the function signature of an available chaincode Contract.
-type Contract func(stub shim.ChaincodeStubInterface, args []string, userID string, userRoles []string) ([]byte, error)
+// Contract describes the signature of a chaincode Contract.
+type Contract func(stub shim.ChaincodeStubInterface, args []string, auth AuthServiceInterface) ([]byte, error)
 
 // ContractsMap maps function references to actual contract functions. e.g. Query: t.query.
 type ContractsMap map[ContractRef]Contract
@@ -25,10 +31,30 @@ type ContractPermissions map[ContractRef]bool
 // Permissions describes the types of permissions the RolePermissions can have.
 type Permissions struct {
 	ContractPermissions
+	ResourcePermissions
 }
 
-// RolePermissions maps user role strings to Permissions.
+// RolePermissions maps Roles to Permissions.
 type RolePermissions map[string]Permissions
 
-// CDBSelector is a specific type for defining CouchDB selectors.
+// CDBSelector describes a CouchDB selector.
 type CDBSelector map[string]interface{}
+
+// CDBQuery describes a CouchDB query.
+type CDBQuery struct {
+	Selector CDBSelector            `json:"selector,omitempty"`
+	Limit    uint                   `json:"limit,omitempty"`
+	Skip     uint                   `json:"skip,omitempty"`
+	Fields   []string               `json:"fields,omitempty"`
+	Sort     map[string]interface{} `json:"sort,omitempty"`
+}
+
+// Rule describes a rule object.
+type Rule struct {
+	Allow          bool
+	FieldFilter    []string
+	SelectorAppend CDBSelector
+}
+
+// RuleFunction describes the signature of a rule callback function.
+type RuleFunction func(userID string, userRoles Roles) Rule
