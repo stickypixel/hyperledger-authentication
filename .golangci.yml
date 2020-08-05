@@ -10,7 +10,12 @@ linters-settings:
     suggest-new: true
 linters:
   enable-all: true
+  disable:
+    - goerr113 # allow 'dynamic' errors
 issues:
+  exclude-use-default: false
+  exclude:
+    - should have a package comment
   exclude-rules:
     # Exclude some linters from running on tests files.
     - path: _test\.go
