@@ -1,0 +1,21 @@
+run:
+  modules-download-mode: vendor # don't download modules
+  timeout: 5m # increase deadline to fix CI timeouts
+linters-settings:
+  goimports:
+    # put imports beginning with prefix after 3rd-party packages;
+    local-prefixes: github.com/stickypixel/hyperledger
+  maligned:
+    # print struct with more effective memory layout or not, false by default
+    suggest-new: true
+linters:
+  enable-all: true
+issues:
+  exclude-rules:
+    # Exclude some linters from running on tests files.
+    - path: _test\.go
+      linters:
+        - funlen
+        - errcheck
+        - goerr113
+        - gochecknoglobals

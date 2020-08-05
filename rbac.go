@@ -5,13 +5,13 @@ import (
 	"github.com/hyperledger/fabric-chaincode-go/shim"
 )
 
-// AuthServiceInterface is exported so that it can be used by consuming applications as a helper
+// AuthServiceInterface is exported so that it can be used by consuming applications as a helper.
 type AuthServiceInterface interface {
 	ValidateContractPerms(function ContractRef) error
 	WithContractAuth(function ContractRef, args []string, contract Contract) ([]byte, error)
 }
 
-// AuthService describes our service
+// AuthService describes our service.
 type AuthService struct {
 	rolePermissions RolePermissions
 	rolesAttr       string
@@ -20,8 +20,13 @@ type AuthService struct {
 	userRoles       Roles
 }
 
-// New returns a concrete AuthService type
-func New(stub shim.ChaincodeStubInterface, clientIdentity cid.ClientIdentity, rolePermissions RolePermissions, rolesAttr string) (a AuthService, err error) {
+// New returns a concrete AuthService type.
+func New(
+	stub shim.ChaincodeStubInterface,
+	clientIdentity cid.ClientIdentity,
+	rolePermissions RolePermissions,
+	rolesAttr string,
+) (a AuthService, err error) {
 	userID, err := clientIdentity.GetID()
 	if err != nil {
 		return a, errAuthentication(err)
@@ -43,11 +48,11 @@ func New(stub shim.ChaincodeStubInterface, clientIdentity cid.ClientIdentity, ro
 	return a, nil
 }
 
-// ValidateContractPerms validates whether the given roles have permission to invoke a function
+// ValidateContractPerms validates whether the given roles have permission to invoke a function.
 func (a AuthService) ValidateContractPerms(contractRef ContractRef) error {
 	for _, role := range a.userRoles {
 		// Lookup permissions
-		perm, _ := a.rolePermissions[role].ContractPermissions[contractRef]
+		perm := a.rolePermissions[role].ContractPermissions[contractRef]
 		if perm {
 			return nil
 		}
@@ -56,7 +61,7 @@ func (a AuthService) ValidateContractPerms(contractRef ContractRef) error {
 	return errContract()
 }
 
-// WithContractAuth wraps a chaincode contract and only invokes it if contract RBAC passes
+// WithContractAuth wraps a chaincode contract and only invokes it if contract RBAC passes.
 func (a AuthService) WithContractAuth(function ContractRef, args []string, contract Contract) ([]byte, error) {
 	if err := a.ValidateContractPerms(function); err != nil {
 		return nil, err

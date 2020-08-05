@@ -7,7 +7,7 @@ import (
 )
 
 // AuthErrorInterface represents an error with an associated, suggested HTTP status code and internal error code.
-// It is not directly used by this package but is exported to aid consumer packages testing against errors from this package.
+// Not directly used by this package but is exported to aid consumer packages testing against errors from this package.
 type AuthErrorInterface interface {
 	Code() int32
 	Error() string
@@ -18,8 +18,8 @@ type AuthErrorInterface interface {
 // authError represents an error with an associated HTTP status code.
 // Implements default error interface.
 type authError struct {
-	code   int32
 	err    error
+	code   int32
 	status int32
 }
 
@@ -33,9 +33,11 @@ func (e authError) StackTrace() errors.StackTrace {
 	type stackTracer interface {
 		StackTrace() errors.StackTrace
 	}
+
 	if err, ok := e.err.(stackTracer); ok && err != nil {
 		return err.StackTrace()
 	}
+
 	return nil
 }
 
@@ -48,12 +50,21 @@ func (e authError) StatusCode() int32 {
 	return e.status
 }
 
+const (
+	CodeErrAuthentication = 4011
+	CodeErrRoles          = 4031
+	CodeErrContract       = 4032
+)
+
+var errMsgContract = errors.New("User doesn't have permission to invoke this function")
+
 // errAuthentication for authentication errors (user could not be authenticated).
 func errAuthentication(err error) authError {
 	err = errors.Wrap(err, "User authentication failed")
+
 	return authError{
 		err:    err,
-		code:   4011,
+		code:   CodeErrAuthentication,
 		status: http.StatusUnauthorized,
 	}
 }
@@ -61,19 +72,19 @@ func errAuthentication(err error) authError {
 // errRoles error.
 func errRoles(role string) authError {
 	err := errors.Errorf("User roles not found. `%v` does not exist on identity", role)
+
 	return authError{
 		err:    err,
-		code:   4031,
+		code:   CodeErrRoles,
 		status: http.StatusForbidden,
 	}
 }
 
 // errContract error.
 func errContract() authError {
-	err := errors.New("User doesn't have permission to invoke this function")
 	return authError{
-		err:    err,
-		code:   4032,
+		err:    errMsgContract,
+		code:   CodeErrContract,
 		status: http.StatusForbidden,
 	}
 }

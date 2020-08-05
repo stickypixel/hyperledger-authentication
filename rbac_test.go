@@ -56,13 +56,14 @@ func TestValidateContractPerms(t *testing.T) {
 		cid.On("GetID", mock.Anything).Return(mock.Anything)
 		cid.On("GetAttributeValue", mock.Anything).Return(tt.roles, true, nil)
 
-		appAuth, err := rbac.New(stub, cid, rolePerms, mock.Anything)
+		appAuth, err := rbac.New(stub, cid, getRolePerms(), mock.Anything)
 		if err != nil {
 			t.Fatalf("New appAuth failed unexpectedly")
 		}
 
 		t.Logf("%v, with roles '%v' and contract '%v'", tt.msg, tt.roles, tt.cRef)
 		err = appAuth.ValidateContractPerms(tt.cRef)
+
 		if !tt.allow {
 			assert.Error(t, err)
 		} else {
@@ -73,6 +74,7 @@ func TestValidateContractPerms(t *testing.T) {
 
 func TestWithContractAuthErrors(t *testing.T) {
 	var expSTType errors.StackTrace
+
 	args := []string{mock.Anything}
 
 	tests := []struct {
@@ -123,12 +125,13 @@ func TestWithContractAuthErrors(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Logf("Should return an error with code %v and status code %v, %v", tt.expC, tt.expSC, tt.msg)
+
 		stub := initEmptyStub()
 		cid := new(mockCID)
 		cid.On("GetAttributeValue", mock.Anything).Return(tt.cidRole, tt.cidFound, tt.cidErr)
 		cid.On("GetID", mock.Anything).Return(mock.Anything)
 
-		appAuth, err := rbac.New(stub, cid, rolePerms, tt.rolesAttr)
+		appAuth, err := rbac.New(stub, cid, getRolePerms(), tt.rolesAttr)
 
 		// If the New constructor didn't fail
 		if err == nil {
@@ -140,7 +143,6 @@ func TestWithContractAuthErrors(t *testing.T) {
 		assert.IsType(t, (string)(""), err.Error())
 
 		if assert.Error(t, err) {
-
 			if e, ok := err.(rbac.AuthErrorInterface); ok {
 				assert.Equal(t, tt.expC, e.Code())
 				assert.Equal(t, tt.expSC, e.StatusCode())
@@ -180,13 +182,16 @@ func TestWithContractAuth(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Logf("Should successfully return the payload to a user with the role %v, from the contract with ref %v", tt.cidRole, tt.cRef)
+		t.Logf(
+			"Should successfully return the payload to user with the role %v, from contract with ref %v", tt.cidRole, tt.cRef,
+		)
+
 		stub := initEmptyStub()
 		cid := new(mockCID)
 		cid.On("GetAttributeValue", "roles").Return(tt.cidRole, tt.cidFound, tt.cidErr)
 		cid.On("GetID", mock.Anything).Return(mock.Anything)
 
-		appAuth, err := rbac.New(stub, cid, rolePerms, tt.rolesAttr)
+		appAuth, err := rbac.New(stub, cid, getRolePerms(), tt.rolesAttr)
 		if err != nil {
 			t.Fatalf("New appAuth failed unexpectedly")
 		}

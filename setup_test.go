@@ -5,8 +5,9 @@ import (
 	"github.com/hyperledger/fabric-chaincode-go/shim"
 	"github.com/hyperledger/fabric-chaincode-go/shimtest"
 	"github.com/hyperledger/fabric-protos-go/peer"
-	"github.com/stickypixel/hyperledger/rbac"
 	"github.com/stretchr/testify/mock"
+
+	"github.com/stickypixel/hyperledger/rbac"
 )
 
 /*
@@ -28,22 +29,28 @@ const (
  *
  */
 
-var userContractPerms = rbac.ContractPermissions{
-	createWallet: true,
-}
+func getRolePerms() (rp rbac.RolePermissions) {
+	var (
+		userContractPerms = rbac.ContractPermissions{
+			createWallet: true,
+		}
 
-var adminContractPerms = rbac.ContractPermissions{
-	createTransfer: true,
-	createWallet:   false,
-}
+		adminContractPerms = rbac.ContractPermissions{
+			createTransfer: true,
+			createWallet:   false,
+		}
+	)
 
-var rolePerms = rbac.RolePermissions{
-	"admin": {
-		ContractPermissions: adminContractPerms,
-	},
-	"user": {
-		ContractPermissions: userContractPerms,
-	},
+	rp = rbac.RolePermissions{
+		"admin": {
+			ContractPermissions: adminContractPerms,
+		},
+		"user": {
+			ContractPermissions: userContractPerms,
+		},
+	}
+
+	return rp
 }
 
 /*
@@ -67,6 +74,7 @@ func initEmptyStub() (stub *shimtest.MockStub) {
 	cc := new(emptyChaincode)
 	stub = shimtest.NewMockStub("__TEST__", cc)
 	stub.MockInit("__TEST_INIT__", nil)
+
 	return stub
 }
 

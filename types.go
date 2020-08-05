@@ -7,22 +7,22 @@ import (
 // If necessary, a method could be added to the empty interfaces to create more defined interfaces,
 // which must be implemented by the consuming application's types.
 
-// Roles is a string array of user roles
+// Roles is a string array of user roles.
 type Roles []string
 
-// ContractRef is a reference to a Contract e.g. it's name or enum
+// ContractRef is a reference to a Contract e.g. it's name or enum.
 type ContractRef interface{}
 
-// Contract describes the function signature of an available chaincode Contract
+// Contract describes the function signature of an available chaincode Contract.
 type Contract func(stub shim.ChaincodeStubInterface, args []string, userID string, userRoles []string) ([]byte, error)
 
-// ContractsMap maps function references to actual contract functions. e.g. Query: t.query
+// ContractsMap maps function references to actual contract functions. e.g. Query: t.query.
 type ContractsMap map[ContractRef]Contract
 
-// ContractPermissions is the base permissions for function invocation
+// ContractPermissions is the base permissions for function invocation.
 type ContractPermissions map[ContractRef]bool
 
-// Permissions describes the types of permissions the RolePermissions can have
+// Permissions describes the types of permissions the RolePermissions can have.
 type Permissions struct {
 	ContractPermissions
 }
