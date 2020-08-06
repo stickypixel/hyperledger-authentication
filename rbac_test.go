@@ -12,14 +12,11 @@ import (
 	"github.com/stickypixel/hyperledger/rbac"
 )
 
-func newQ(dt string) rbac.CDBQuery {
-	return rbac.CDBQuery{
-		Selector: rbac.CDBSelector{
-			"docType": dt,
-		},
-		Limit: 10,
-	}
-}
+/*
+ *
+ * Tests for success
+ *
+ */
 
 func TestValidateContractPerms(t *testing.T) {
 	tests := []struct {
@@ -68,97 +65,12 @@ func TestValidateContractPerms(t *testing.T) {
 	}
 }
 
-func TestWithContractAuthErrors(t *testing.T) {
-	var expSTType errors.StackTrace
-
-	args := []string{mock.Anything}
-
-	tests := []struct {
-		cRef     string
-		c        rbac.Contract
-		expSC    int32
-		expC     int32
-		msg      string
-		cidRoles string
-		cidFound bool
-		cidErr   error
-	}{
-		{
-			cRef:     contractCreateTransfer,
-			c:        mockContract,
-			expSC:    http.StatusUnauthorized,
-			expC:     rbac.CodeErrAuthentication,
-			msg:      "when an error is returned from the CID",
-			cidRoles: mock.Anything,
-			cidFound: false,
-			cidErr:   errors.New("some err from cid"),
-		},
-		{
-			cRef:     contractCreateTransfer,
-			c:        mockContract,
-			expSC:    http.StatusForbidden,
-			expC:     rbac.CodeErrRoles,
-			msg:      "when the roleAttr is not found in the identity",
-			cidRoles: mock.Anything,
-			cidFound: false,
-			cidErr:   nil,
-		},
-		{
-			cRef:     contractCreateTransfer,
-			c:        mockContract,
-			expSC:    http.StatusForbidden,
-			expC:     rbac.CodeErrContract,
-			msg:      "when the role is not found in the permissions map",
-			cidRoles: "anUnknownRole",
-			cidFound: true,
-			cidErr:   nil,
-		},
-		{
-			cRef:     contractCreateTransfer,
-			c:        mockContract,
-			expSC:    http.StatusForbidden,
-			expC:     rbac.CodeErrContract,
-			msg:      "when contract invocation is not allowed",
-			cidRoles: "user",
-			cidFound: true,
-			cidErr:   nil,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Logf("Should return an error with code %v and HTTP status code %v %v", tt.expC, tt.expSC, tt.msg)
-
-		stub := initEmptyStub()
-		cid := new(mockCID)
-		cid.On("GetAttributeValue", mock.Anything).Return(tt.cidRoles, tt.cidFound, tt.cidErr)
-		cid.On("GetID", mock.Anything).Return(mock.Anything)
-
-		appAuth, err := rbac.New(stub, cid, getRolePerms(), "roles")
-		// If the New constructor didn't fail
-		if err == nil {
-			_, err = appAuth.WithContractAuth(tt.cRef, args, tt.c)
-		}
-
-		assert.Implements(t, (*error)(nil), err)
-		assert.Implements(t, (*rbac.AuthErrorInterface)(nil), err)
-		assert.IsType(t, (string)(""), err.Error())
-
-		if assert.Error(t, err) {
-			if e, ok := err.(rbac.AuthErrorInterface); ok {
-				assert.Equal(t, tt.expC, e.Code())
-				assert.Equal(t, tt.expSC, e.StatusCode())
-				assert.IsType(t, expSTType, e.StackTrace())
-			}
-		}
-	}
-}
-
 func TestWithContractAuth(t *testing.T) {
 	args := []string{mock.Anything}
 
 	tests := []struct {
 		cRef     string
-		c        rbac.Contract
+		c        rbac.ContractFunc
 		cidRoles string
 	}{
 		{
@@ -185,7 +97,7 @@ func TestWithContractAuth(t *testing.T) {
 	}
 }
 
-func TestValidateResourcePermsQuery(t *testing.T) {
+func TestValidateQueryPerms(t *testing.T) {
 	tests := []struct {
 		res      string
 		cidRoles string
@@ -212,58 +124,15 @@ func TestValidateResourcePermsQuery(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Logf("Should allow %v to %v %vs, and %v", tt.cidRoles, operationQuery, tt.res, tt.msg)
+		t.Logf("Should allow %v to query %vs, and %v", tt.cidRoles, tt.res, tt.msg)
 
 		appAuth := simpleSetup(t, tt.cidRoles)
-		q, err := appAuth.ValidateQueryPerms(tt.res, operationQuery, newQ(tt.res))
+		q := `{"selector": {"docType": "` + tt.res + `"}, "limit": 10}`
+		payload, err := appAuth.ValidateQueryPerms(q)
 		assert.NoError(t, err)
 
-		qJSON, _ := json.Marshal(q)
+		qJSON, _ := json.Marshal(payload)
 		assert.JSONEq(t, tt.expQ, string(qJSON))
-	}
-}
-
-func TestValidateResourcePermsDelete(t *testing.T) {
-	tests := []struct {
-		res      string
-		op       string
-		cidRoles string
-		msg      string
-		allow    bool
-	}{
-		{
-			res:      resourceWallet,
-			op:       operationDelete,
-			cidRoles: "user",
-			allow:    false,
-			msg:      "Should not allow",
-		},
-		{
-			res:      resourceTransfer,
-			op:       operationDelete,
-			cidRoles: "admin",
-			allow:    true,
-			msg:      "Should allow",
-		},
-		{
-			res:      resourceWallet,
-			op:       operationDelete,
-			cidRoles: "admin",
-			allow:    false,
-			msg:      "Should not allow",
-		},
-	}
-	for _, tt := range tests {
-		t.Logf("%v %v to %v %vs", tt.msg, tt.cidRoles, tt.op, tt.res)
-
-		appAuth := simpleSetup(t, tt.cidRoles)
-		_, err := appAuth.ValidateQueryPerms(tt.res, tt.op, newQ(tt.res))
-
-		if !tt.allow {
-			assert.Error(t, err)
-		} else {
-			assert.NoError(t, err)
-		}
 	}
 }
 
@@ -271,7 +140,7 @@ func TestContractQuery(t *testing.T) {
 	tests := []struct {
 		args     []string
 		cRef     string
-		c        rbac.Contract
+		c        rbac.ContractFunc
 		cidRoles string
 		expPL    string
 		msg      string
@@ -322,33 +191,173 @@ func TestContractQuery(t *testing.T) {
 	}
 }
 
+/*
+ *
+ * Tests for failures
+ *
+ */
+
+func TestWithContractAuthErrors(t *testing.T) {
+	var expSTType errors.StackTrace
+
+	args := []string{mock.Anything}
+
+	tests := []struct {
+		cRef     string
+		c        rbac.ContractFunc
+		expSC    int32
+		expC     int32
+		msg      string
+		cidRoles string
+		cidFound bool
+		cidErr   error
+	}{
+		{
+			cRef:     contractCreateTransfer,
+			c:        mockContract,
+			expSC:    http.StatusUnauthorized,
+			expC:     rbac.CodeErrAuthentication,
+			msg:      "when an error is returned from the CID",
+			cidRoles: mock.Anything,
+			cidFound: false,
+			cidErr:   errors.New("some err from cid"),
+		},
+		{
+			cRef:     contractCreateTransfer,
+			c:        mockContract,
+			expSC:    http.StatusForbidden,
+			expC:     rbac.CodeErrRoles,
+			msg:      "when the roleAttr is not found in the identity",
+			cidRoles: mock.Anything,
+			cidFound: false,
+			cidErr:   nil,
+		},
+		{
+			cRef:     contractCreateTransfer,
+			c:        mockContract,
+			expSC:    http.StatusForbidden,
+			expC:     rbac.CodeErrContract,
+			msg:      "when the role is not found in the permissions map",
+			cidRoles: "anUnknownRole",
+			cidFound: true,
+			cidErr:   nil,
+		},
+		{
+			cRef:     contractCreateTransfer,
+			c:        mockContract,
+			expSC:    http.StatusForbidden,
+			expC:     rbac.CodeErrContract,
+			msg:      "when contract invocation is not allowed",
+			cidRoles: "user",
+			cidFound: true,
+			cidErr:   nil,
+		},
+	}
+
+	for _, tt := range tests {
+		stub := initEmptyStub()
+		cid := new(mockCID)
+		cid.On("GetAttributeValue", mock.Anything).Return(tt.cidRoles, tt.cidFound, tt.cidErr)
+		cid.On("GetID", mock.Anything).Return(mock.Anything)
+
+		appAuth, err := rbac.New(stub, cid, getRolePerms(), "roles")
+		// If the New constructor didn't fail
+		if err == nil {
+			_, err = appAuth.WithContractAuth(tt.cRef, args, tt.c)
+		}
+
+		assert.Implements(t, (*error)(nil), err)
+		assert.Implements(t, (*rbac.AuthErrorInterface)(nil), err)
+		assert.IsType(t, (string)(""), err.Error())
+
+		if assert.Error(t, err) {
+			t.Logf("Should return an error with code %v and HTTP status code %v %v\nmsg: %v", tt.expC, tt.expSC, tt.msg, err)
+
+			if e, ok := err.(rbac.AuthErrorInterface); ok {
+				assert.Equal(t, tt.expC, e.Code())
+				assert.Equal(t, tt.expSC, e.StatusCode())
+				assert.IsType(t, expSTType, e.StackTrace())
+			}
+		}
+	}
+}
+
 func TestContractQueryErrors(t *testing.T) {
 	tests := []struct {
 		args     []string
 		cRef     string
-		c        rbac.Contract
+		c        rbac.ContractFunc
 		cidRoles string
 		expSC    int32
 		expC     int32
 		msg      string
 	}{
 		{
+			args:     []string{`{selector": {"docTypeeee": "anything"}, "limit": 10}`},
+			cRef:     contractQueryLedger,
+			c:        mockQueryContract,
+			cidRoles: "admin",
+			expSC:    http.StatusBadRequest,
+			expC:     rbac.CodeErrQueryMarshal,
+			msg:      "malformed json",
+		},
+		{
+			args:     []string{`{"selector": {"notDocType": "anything"}, "limit": 10}`},
+			cRef:     contractQueryLedger,
+			c:        mockQueryContract,
+			cidRoles: "admin",
+			expSC:    http.StatusBadRequest,
+			expC:     rbac.CodeErrQueryDocType,
+			msg:      "missing doctype",
+		},
+		{
 			args:     []string{doctypeQuery(resourceWallet)},
 			cRef:     contractQueryLedger,
 			c:        mockQueryContract,
 			cidRoles: "admin",
 			expSC:    http.StatusForbidden,
-			expC:     rbac.CodeErrResource,
+			expC:     rbac.CodeErrQuery,
+			msg:      "user forbidden to query",
 		},
 	}
 
 	for _, tt := range tests {
-		t.Logf("Should return an error with code %v and HTTP status code %v", tt.expC, tt.expSC)
-
 		appAuth := simpleSetup(t, tt.cidRoles)
-
 		_, err := appAuth.WithContractAuth(tt.cRef, tt.args, tt.c)
+
 		if assert.Error(t, err) {
+			t.Logf("Should return an error with code %v and HTTP status code %v\nmsg: %v", tt.expC, tt.expSC, err)
+
+			if e, ok := err.(rbac.AuthErrorInterface); ok {
+				assert.Equal(t, tt.expC, e.Code())
+				assert.Equal(t, tt.expSC, e.StatusCode())
+			}
+		}
+	}
+}
+
+func TestValidateQueryPermsErrors(t *testing.T) {
+	tests := []struct {
+		res      string
+		cidRoles string
+		expSC    int32
+		expC     int32
+	}{
+		{
+			res:      resourceTransfer,
+			cidRoles: "unknownRole",
+			expSC:    http.StatusForbidden,
+			expC:     rbac.CodeErrQuery,
+		},
+	}
+	for _, tt := range tests {
+		appAuth := simpleSetup(t, tt.cidRoles)
+		q := `{"selector": {"docType": "` + tt.res + `"}, "limit": 10}`
+
+		_, err := appAuth.ValidateQueryPerms(q)
+		if assert.Error(t, err) {
+			t.Logf("Should return an error with code %v and HTTP status code %v\nerr: %v", tt.expC, tt.expSC, err)
+
 			if e, ok := err.(rbac.AuthErrorInterface); ok {
 				assert.Equal(t, tt.expC, e.Code())
 				assert.Equal(t, tt.expSC, e.StatusCode())

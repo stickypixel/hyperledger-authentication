@@ -14,7 +14,7 @@ import (
 
 /*
  *
- * Setup all types for RBAC resources, operations and contractRefs
+ * Setup all types for RBAC resources and contractRefs
  *
  */
 
@@ -22,9 +22,6 @@ const (
 	resourceAsset          = "asset"
 	resourceTransfer       = "transfer"
 	resourceWallet         = "wallet"
-	operationGet           = "get"
-	operationQuery         = "query"
-	operationDelete        = "delete"
 	contractCreateTransfer = "createTransfer"
 	contractCreateWallet   = "createWallet"
 	contractQueryLedger    = "queryLedger"
@@ -44,21 +41,10 @@ func getRolePerms() rbac.RolePermissions {
 				contractCreateWallet:   false,
 				contractQueryLedger:    true,
 			},
-			ResourcePermissions: rbac.ResourcePermissions{
-				resourceAsset: rbac.OperationPermissions{
-					operationGet:    allow,
-					operationQuery:  filterFields,
-					operationDelete: disallow,
-				},
-				resourceTransfer: rbac.OperationPermissions{
-					operationGet:    allow,
-					operationQuery:  allow,
-					operationDelete: allow,
-				},
-				resourceWallet: rbac.OperationPermissions{
-					operationGet:   allow,
-					operationQuery: disallow,
-				},
+			QueryPermissions: rbac.QueryPermissions{
+				resourceAsset:    filterFields,
+				resourceTransfer: allow,
+				resourceWallet:   disallow,
 			},
 		},
 		"user": {
@@ -66,17 +52,9 @@ func getRolePerms() rbac.RolePermissions {
 				contractCreateWallet: true,
 				contractQueryLedger:  true,
 			},
-			ResourcePermissions: rbac.ResourcePermissions{
-				resourceTransfer: rbac.OperationPermissions{
-					operationGet:    disallow,
-					operationQuery:  inTransfer,
-					operationDelete: disallow,
-				},
-				resourceWallet: rbac.OperationPermissions{
-					operationGet:    disallow,
-					operationQuery:  owner,
-					operationDelete: disallow,
-				},
+			QueryPermissions: rbac.QueryPermissions{
+				resourceTransfer: inTransfer,
+				resourceWallet:   owner,
 			},
 		},
 	}

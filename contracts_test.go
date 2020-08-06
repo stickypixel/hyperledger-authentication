@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 
 	"github.com/hyperledger/fabric-chaincode-go/shim"
-	"github.com/pkg/errors"
 
 	"github.com/stickypixel/hyperledger/rbac"
 )
@@ -20,17 +19,7 @@ func mockQueryContract(
 	args []string,
 	auth rbac.AuthServiceInterface,
 ) ([]byte, error) {
-	q := rbac.CDBQuery{}
-	if err := json.Unmarshal([]byte(args[0]), &q); err != nil {
-		return nil, err
-	}
-
-	res, ok := q.Selector["docType"]
-	if !ok {
-		return nil, errors.New("docType not found in selector")
-	}
-
-	q, err := auth.ValidateQueryPerms(res.(string), operationQuery, q)
+	q, err := auth.ValidateQueryPerms(args[0])
 	if err != nil {
 		return nil, err
 	}

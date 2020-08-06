@@ -2,16 +2,16 @@ package rbac_test
 
 import "github.com/stickypixel/hyperledger/rbac"
 
-func allow(userID string, userRoles rbac.Roles) rbac.Rule {
-	return rbac.Rule{Allow: true}
+func allow(userID string, userRoles rbac.Roles) rbac.QueryRule {
+	return rbac.QueryRule{Allow: true}
 }
 
-func disallow(userID string, userRoles rbac.Roles) rbac.Rule {
-	return rbac.Rule{Allow: false}
+func disallow(userID string, userRoles rbac.Roles) rbac.QueryRule {
+	return rbac.QueryRule{Allow: false}
 }
 
-func owner(userID string, userRoles rbac.Roles) rbac.Rule {
-	return rbac.Rule{
+func owner(userID string, userRoles rbac.Roles) rbac.QueryRule {
+	return rbac.QueryRule{
 		Allow: true,
 		SelectorAppend: rbac.CDBSelector{
 			"createdBy": userID,
@@ -19,15 +19,15 @@ func owner(userID string, userRoles rbac.Roles) rbac.Rule {
 	}
 }
 
-func filterFields(userID string, userRoles rbac.Roles) rbac.Rule {
-	return rbac.Rule{
+func filterFields(userID string, userRoles rbac.Roles) rbac.QueryRule {
+	return rbac.QueryRule{
 		Allow:       true,
 		FieldFilter: []string{"createdBy", "created"},
 	}
 }
 
-func inTransfer(userID string, userRoles rbac.Roles) rbac.Rule {
-	return rbac.Rule{
+func inTransfer(userID string, userRoles rbac.Roles) rbac.QueryRule {
+	return rbac.QueryRule{
 		Allow: true,
 		SelectorAppend: rbac.CDBSelector{
 			"$or": []rbac.CDBSelector{

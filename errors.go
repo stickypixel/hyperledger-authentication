@@ -52,10 +52,12 @@ func (e authError) StatusCode() int32 {
 
 // Error Codes for identifying error types.
 const (
+	CodeErrQueryMarshal   = 4001
+	CodeErrQueryDocType   = 4002
 	CodeErrAuthentication = 4011
 	CodeErrRoles          = 4031
 	CodeErrContract       = 4032
-	CodeErrResource       = 4033
+	CodeErrQuery          = 4033
 )
 
 // errAuthentication for authentication errors (user could not be authenticated).
@@ -91,13 +93,35 @@ func errContract() authError {
 	}
 }
 
-// errResource error.
-func errResource() authError {
-	err := errors.New("user doesn't have permission to perform this operation on this record")
+// errQuery error.
+func errQuery(res string) authError {
+	err := errors.Errorf("user doesn't have permission to query %v records", res)
 
 	return authError{
 		err:    err,
-		code:   CodeErrResource,
+		code:   CodeErrQuery,
 		status: http.StatusForbidden,
+	}
+}
+
+// errQueryMarshal error.
+func errQueryMarshal(err error) authError {
+	err = errors.Wrap(err, "could not marshal query")
+
+	return authError{
+		err:    err,
+		code:   CodeErrQueryMarshal,
+		status: http.StatusBadRequest,
+	}
+}
+
+// errQueryDocType error.
+func errQueryDocType() authError {
+	err := errors.New("docType not found in query, did you include it at the root?")
+
+	return authError{
+		err:    err,
+		code:   CodeErrQueryDocType,
+		status: http.StatusBadRequest,
 	}
 }

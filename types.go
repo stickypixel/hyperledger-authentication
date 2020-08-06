@@ -10,20 +10,24 @@ import (
 // Roles is a string array of user roles.
 type Roles []string
 
-// OperationPermissions maps operations to individual rules.
-type OperationPermissions map[string]RuleFunction
+// QueryRule describes a rule object.
+type QueryRule struct {
+	Allow          bool
+	FieldFilter    []string
+	SelectorAppend CDBSelector
+}
 
-// ResourcePermissions maps Resources to OperationPermissions.
-type ResourcePermissions map[string]OperationPermissions
+// QueryRuleFunc describes the signature of a rule callback function.
+type QueryRuleFunc func(userID string, userRoles Roles) QueryRule
 
-// ContractRef is a reference to a Contract e.g. it's name or enum.
+// QueryPermissions maps Resources to QueryRuleFuncs.
+type QueryPermissions map[string]QueryRuleFunc
+
+// ContractRef is a reference to a ContractFunc e.g. it's name or enum value.
 type ContractRef interface{}
 
-// Contract describes the signature of a chaincode Contract.
-type Contract func(stub shim.ChaincodeStubInterface, args []string, auth AuthServiceInterface) ([]byte, error)
-
-// ContractsMap maps function references to actual contract functions. e.g. Query: t.query.
-type ContractsMap map[ContractRef]Contract
+// ContractFunc describes the signature of a chaincode ContractFunc.
+type ContractFunc func(stub shim.ChaincodeStubInterface, args []string, auth AuthServiceInterface) ([]byte, error)
 
 // ContractPermissions is the base permissions for function invocation.
 type ContractPermissions map[ContractRef]bool
@@ -31,7 +35,7 @@ type ContractPermissions map[ContractRef]bool
 // Permissions describes the types of permissions the RolePermissions can have.
 type Permissions struct {
 	ContractPermissions
-	ResourcePermissions
+	QueryPermissions
 }
 
 // RolePermissions maps Roles to Permissions.
@@ -48,13 +52,3 @@ type CDBQuery struct {
 	Fields   []string               `json:"fields,omitempty"`
 	Sort     map[string]interface{} `json:"sort,omitempty"`
 }
-
-// Rule describes a rule object.
-type Rule struct {
-	Allow          bool
-	FieldFilter    []string
-	SelectorAppend CDBSelector
-}
-
-// RuleFunction describes the signature of a rule callback function.
-type RuleFunction func(userID string, userRoles Roles) Rule
