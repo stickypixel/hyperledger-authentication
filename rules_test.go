@@ -32,18 +32,11 @@ func inTransfer(userID string, userRoles rbac.Roles) rbac.QueryRule {
 		SelectorAppend: rbac.CDBSelector{
 			"$or": []rbac.CDBSelector{
 				{"createdBy": userID},
-				{"asset": fromOrTo(userID)},
-				{"money": fromOrTo(userID)},
+				{"asset.from": userID},
+				{"asset.to": userID},
+				{"payment.from": userID},
+				{"payment.to": userID},
 			},
-		},
-	}
-}
-
-func fromOrTo(userID string) rbac.CDBSelector {
-	return rbac.CDBSelector{
-		"$or": []rbac.CDBSelector{
-			{"from": userID},
-			{"to": userID},
 		},
 	}
 }

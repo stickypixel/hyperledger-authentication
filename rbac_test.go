@@ -1,7 +1,6 @@
 package rbac_test
 
 import (
-	"encoding/json"
 	"net/http"
 	"testing"
 
@@ -129,10 +128,9 @@ func TestValidateQueryPerms(t *testing.T) {
 		appAuth := simpleSetup(t, tt.cidRoles)
 		q := `{"selector": {"docType": "` + tt.res + `"}, "limit": 10}`
 		payload, err := appAuth.ValidateQueryPerms(q)
-		assert.NoError(t, err)
 
-		qJSON, _ := json.Marshal(payload)
-		assert.JSONEq(t, tt.expQ, string(qJSON))
+		assert.NoError(t, err)
+		assert.JSONEq(t, tt.expQ, payload)
 	}
 }
 

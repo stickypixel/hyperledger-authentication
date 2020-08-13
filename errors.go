@@ -84,7 +84,7 @@ func errRoles(role string) authError {
 
 // errContract error.
 func errContract() authError {
-	err := errors.New("user doesn't have permission to invoke this function")
+	err := errors.New("user doesn't have permission to invoke this contract")
 
 	return authError{
 		err:    err,
@@ -118,6 +118,17 @@ func errQueryMarshal(err error) authError {
 // errQueryDocType error.
 func errQueryDocType() authError {
 	err := errors.New("docType not found in query, did you include it at the root?")
+
+	return authError{
+		err:    err,
+		code:   CodeErrQueryDocType,
+		status: http.StatusBadRequest,
+	}
+}
+
+// errMarshal error.
+func errMarshal(err error) authError {
+	err = errors.Wrap(err, "Marshal failed")
 
 	return authError{
 		err:    err,

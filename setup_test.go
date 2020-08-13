@@ -14,7 +14,7 @@ import (
 
 /*
  *
- * Setup all types for RBAC resources and contractRefs
+ * Setup all types for RBAC resources and contractNames
  *
  */
 

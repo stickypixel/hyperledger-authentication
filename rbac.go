@@ -10,9 +10,10 @@ import (
 
 // AuthServiceInterface is exported so that it can be used by consuming applications as a helper.
 type AuthServiceInterface interface {
-	ValidateContractPerms(function ContractRef) error
-	ValidateQueryPerms(query string) (CDBQuery, error)
-	WithContractAuth(function ContractRef, args []string, contract ContractFunc) ([]byte, error)
+	GetUserID() string
+	ValidateContractPerms(contractName string) error
+	ValidateQueryPerms(query string) (string, error)
+	WithContractAuth(contractName string, args []string, contract ContractFunc) ([]byte, error)
 }
 
 // AuthService describes the auth service.
@@ -52,11 +53,11 @@ func New(
 	return a, nil
 }
 
-// ValidateContractPerms validates whether the given roles have permission to invoke a function.
-func (a AuthService) ValidateContractPerms(contractRef ContractRef) error {
+// ValidateContractPerms validates whether the given roles have permission to invoke a contract.
+func (a AuthService) ValidateContractPerms(contractName string) error {
 	for _, role := range a.userRoles {
 		// Lookup permissions
-		perm := a.rolePermissions[role].ContractPermissions[contractRef]
+		perm := a.rolePermissions[role].ContractPermissions[contractName]
 		if perm {
 			return nil
 		}
@@ -65,19 +66,24 @@ func (a AuthService) ValidateContractPerms(contractRef ContractRef) error {
 	return errContract()
 }
 
+// GetUserID returns the current user ID.
+func (a AuthService) GetUserID() string {
+	return a.userID
+}
+
 // ValidateQueryPerms validates if user can perform query and enforces CouchDB query filters where required.
-func (a AuthService) ValidateQueryPerms(q string) (CDBQuery, error) {
+func (a AuthService) ValidateQueryPerms(q string) (string, error) {
 	var newQ CDBQuery
 	// Unmarshal in to a CDBQuery
 	if err := json.Unmarshal([]byte(q), &newQ); err != nil {
-		return newQ, errQueryMarshal(err)
+		return "", errQueryMarshal(err)
 	}
 
 	// Pick out the doctype from the query
 	resource := newQ.Selector["docType"]
 
 	if resource == nil {
-		return newQ, errQueryDocType()
+		return "", errQueryDocType()
 	}
 
 	for _, role := range a.userRoles {
@@ -89,28 +95,33 @@ func (a AuthService) ValidateQueryPerms(q string) (CDBQuery, error) {
 
 		// Construct rules from the ruleFunc callback
 		rules := ruleFunc(a.userID, a.userRoles)
-
 		if !rules.Allow {
 			continue
 		}
 
-		// Enforce any query appends
-		if rules.SelectorAppend != nil {
-			newQ.Selector = appendSelector(newQ.Selector, rules.SelectorAppend)
+		// Enforce any selector appends
+		for k, v := range rules.SelectorAppend {
+			newQ.Selector[k] = v
 		}
 
 		// Enforce any filter queries (no need to check for nil first)
 		newQ.Fields = rules.FieldFilter
 
-		return newQ, nil
+		// Marshal back to json bytes so it can be sent back as a string
+		newQBytes, err := json.Marshal(newQ)
+		if err != nil {
+			return "", errMarshal(err)
+		}
+
+		return string(newQBytes), nil
 	}
 
-	return newQ, errQuery(resource.(string))
+	return "", errQuery(resource.(string))
 }
 
 // WithContractAuth wraps a chaincode contract and only invokes it if contract RBAC passes.
-func (a AuthService) WithContractAuth(function ContractRef, args []string, contract ContractFunc) ([]byte, error) {
-	if err := a.ValidateContractPerms(function); err != nil {
+func (a AuthService) WithContractAuth(contractName string, args []string, contract ContractFunc) ([]byte, error) {
+	if err := a.ValidateContractPerms(contractName); err != nil {
 		return nil, err
 	}
 

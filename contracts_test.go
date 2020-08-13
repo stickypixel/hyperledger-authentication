@@ -1,8 +1,6 @@
 package rbac_test
 
 import (
-	"encoding/json"
-
 	"github.com/hyperledger/fabric-chaincode-go/shim"
 
 	"github.com/stickypixel/hyperledger/rbac"
@@ -26,5 +24,5 @@ func mockQueryContract(
 
 	// In real scenarios, q can now be used to query the ledger and will only return results enforced by the rule.
 
-	return json.Marshal(q)
+	return []byte(q), nil
 }

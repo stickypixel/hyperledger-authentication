@@ -23,14 +23,11 @@ type QueryRuleFunc func(userID string, userRoles Roles) QueryRule
 // QueryPermissions maps Resources to QueryRuleFuncs.
 type QueryPermissions map[string]QueryRuleFunc
 
-// ContractRef is a reference to a ContractFunc e.g. it's name or enum value.
-type ContractRef interface{}
-
 // ContractFunc describes the signature of a chaincode ContractFunc.
 type ContractFunc func(stub shim.ChaincodeStubInterface, args []string, auth AuthServiceInterface) ([]byte, error)
 
-// ContractPermissions is the base permissions for function invocation.
-type ContractPermissions map[ContractRef]bool
+// ContractPermissions is the base permissions for contract invocation.
+type ContractPermissions map[string]bool
 
 // Permissions describes the types of permissions the RolePermissions can have.
 type Permissions struct {
