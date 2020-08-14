@@ -2,15 +2,15 @@ package rbac_test
 
 import "github.com/stickypixel/hyperledger/rbac"
 
-func allow(userID string, userRoles rbac.Roles) rbac.QueryRule {
+func allow(userID string, userRoles []string) rbac.QueryRule {
 	return rbac.QueryRule{Allow: true}
 }
 
-func disallow(userID string, userRoles rbac.Roles) rbac.QueryRule {
+func disallow(userID string, userRoles []string) rbac.QueryRule {
 	return rbac.QueryRule{Allow: false}
 }
 
-func owner(userID string, userRoles rbac.Roles) rbac.QueryRule {
+func owner(userID string, userRoles []string) rbac.QueryRule {
 	return rbac.QueryRule{
 		Allow: true,
 		SelectorAppend: rbac.CDBSelector{
@@ -19,14 +19,14 @@ func owner(userID string, userRoles rbac.Roles) rbac.QueryRule {
 	}
 }
 
-func filterFields(userID string, userRoles rbac.Roles) rbac.QueryRule {
+func filterFields(userID string, userRoles []string) rbac.QueryRule {
 	return rbac.QueryRule{
 		Allow:       true,
 		FieldFilter: []string{"createdBy", "created"},
 	}
 }
 
-func inTransfer(userID string, userRoles rbac.Roles) rbac.QueryRule {
+func inTransfer(userID string, userRoles []string) rbac.QueryRule {
 	return rbac.QueryRule{
 		Allow: true,
 		SelectorAppend: rbac.CDBSelector{

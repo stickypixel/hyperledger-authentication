@@ -6,7 +6,7 @@ import (
 	"github.com/hyperledger/fabric-chaincode-go/pkg/cid"
 )
 
-func getRoles(clientIdentity cid.ClientIdentity, rolesAttr string) (Roles, error) {
+func getRoles(clientIdentity cid.ClientIdentity, rolesAttr string) ([]string, error) {
 	val, found, err := clientIdentity.GetAttributeValue(rolesAttr)
 	if err != nil {
 		return nil, errAuthentication(err)

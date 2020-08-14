@@ -11,6 +11,7 @@ import (
 // AuthServiceInterface is exported so that it can be used by consuming applications as a helper.
 type AuthServiceInterface interface {
 	GetUserID() string
+	GetUserRoles() []string
 	ValidateContractPerms(contractName string) error
 	ValidateQueryPerms(query string) (string, error)
 	WithContractAuth(contractName string, args []string, contract ContractFunc) ([]byte, error)
@@ -21,7 +22,7 @@ type AuthService struct {
 	rolePermissions RolePermissions
 	stub            shim.ChaincodeStubInterface
 	userID          string
-	userRoles       Roles
+	userRoles       []string
 }
 
 // New returns a concrete AuthService type.
@@ -66,9 +67,14 @@ func (a AuthService) ValidateContractPerms(contractName string) error {
 	return errContract()
 }
 
-// GetUserID returns the current user ID.
+// GetUserID returns the current user's ID.
 func (a AuthService) GetUserID() string {
 	return a.userID
+}
+
+// GetUserRoles returns the current user's roles.
+func (a AuthService) GetUserRoles() []string {
+	return a.userRoles
 }
 
 // ValidateQueryPerms validates if user can perform query and enforces CouchDB query filters where required.
@@ -82,7 +88,7 @@ func (a AuthService) ValidateQueryPerms(q string) (string, error) {
 	// Pick out the doctype from the query
 	resource := newQ.Selector["docType"]
 
-	if resource == nil {
+	if resource == nil || resource == "" {
 		return "", errQueryDocType()
 	}
 

@@ -7,9 +7,6 @@ import (
 // If necessary, a method could be added to the empty interfaces to create more defined interfaces,
 // which must be implemented by the consuming application's types.
 
-// Roles is a string array of user roles.
-type Roles []string
-
 // QueryRule describes a rule object.
 type QueryRule struct {
 	Allow          bool
@@ -18,7 +15,7 @@ type QueryRule struct {
 }
 
 // QueryRuleFunc describes the signature of a rule callback function.
-type QueryRuleFunc func(userID string, userRoles Roles) QueryRule
+type QueryRuleFunc func(userID string, userRoles []string) QueryRule
 
 // QueryPermissions maps Resources to QueryRuleFuncs.
 type QueryPermissions map[string]QueryRuleFunc
@@ -35,7 +32,7 @@ type Permissions struct {
 	QueryPermissions
 }
 
-// RolePermissions maps Roles to Permissions.
+// RolePermissions maps a roles to Permissions.
 type RolePermissions map[string]Permissions
 
 // CDBSelector describes a CouchDB selector.
